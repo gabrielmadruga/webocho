@@ -254,8 +254,8 @@ async function start() {
   canvas = document.getElementById("canvas") as HTMLCanvasElement;
   canvas.width = 128;
   canvas.height = 128;
-  canvas.style.width = `${128 * 4}px`;
-  canvas.style.height = `${128 * 4}px`;
+  // canvas.style.width = `${128 * 4}px`;
+  // canvas.style.height = `${128 * 4}px`;
   canvasCtx = canvas.getContext("2d");
   if (!canvasCtx) throw new Error("Failed to _canvas.getContext");
 
@@ -1140,3 +1140,5 @@ export {
   t,
 };
 export type { Vec };
+
+// TODO: use OffscreenCanvas

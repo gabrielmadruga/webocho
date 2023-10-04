@@ -17,5 +17,6 @@
     "jsx": "react-jsx"
   },
   "include": ["src"],
+  "exclude": ["./src/engine_with_recording.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

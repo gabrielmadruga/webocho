@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { TouchEventHandler, useCallback, useEffect } from "react";
 import "./App.css";
 import * as game from "./game";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   useEffect(function startTheGame() {
     if (window.game) return;
     window.game = game;
@@ -14,29 +10,79 @@ function App() {
     setTimeout(game.start, 500);
   }, []);
 
+  const handleButtonTouch: TouchEventHandler<HTMLButtonElement> = useCallback(
+    (event) => {
+      const key = (event.target as HTMLButtonElement).innerText;
+      if (key === "J") {
+        if (event.type === "touchend") {
+          const moveButtonKeys = [
+            "ArrowLeft",
+            "ArrowRight",
+            "ArrowUp",
+            "ArrowDown",
+          ];
+          moveButtonKeys.forEach(
+            (key) => (window.engineState.buttons[key] = false)
+          );
+        } else {
+          const boundingRect = (
+            event.target as HTMLButtonElement
+          ).getBoundingClientRect();
+          const x = event.touches[0].clientX - boundingRect.left;
+          const y = event.touches[0].clientY - boundingRect.top;
+          if (x < boundingRect.width / 3) {
+            window.engineState.buttons["ArrowLeft"] = true;
+          } else if (x > (2 * boundingRect.width) / 3) {
+            window.engineState.buttons["ArrowRight"] = true;
+          } else {
+            ["ArrowLeft", "ArrowRight"].forEach(
+              (key) => (window.engineState.buttons[key] = false)
+            );
+          }
+          if (y < boundingRect.height / 3) {
+            window.engineState.buttons["ArrowUp"] = true;
+          } else if (y > (2 * boundingRect.height) / 3) {
+            window.engineState.buttons["ArrowDown"] = true;
+          } else {
+            ["ArrowUp", "ArrowDown"].forEach(
+              (key) => (window.engineState.buttons[key] = false)
+            );
+          }
+        }
+      } else {
+        window.engineState.buttons[`Key${key}`] = event.type === "touchstart";
+      }
+    },
+    []
+  );
   return (
     <div className="App">
       <canvas id="canvas"></canvas>
-      {/* <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className="Controls">
+        <div className="Joystick">
+          <button
+            onTouchStart={handleButtonTouch}
+            onTouchMove={handleButtonTouch}
+            onTouchEnd={handleButtonTouch}
+          >
+            J
+          </button>
+        </div>
+        <div className="Buttons">
+          <button
+            onTouchStart={handleButtonTouch}
+            onTouchEnd={handleButtonTouch}
+          >
+            Z
+          </button>
+          <button
+            onTouchStart={handleButtonTouch}
+            onTouchEnd={handleButtonTouch}
+          >
+            X
+          </button>
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p> */}
     </div>
   );
 }

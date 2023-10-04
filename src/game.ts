@@ -231,7 +231,7 @@ type GameObject = {
   dashTargetY: number;
   dashAccelerationX: number;
   dashAccelerationY: number;
-};
+} & any;
 
 const gameObjectTemplate: GameObject = {
   id: -1,
@@ -1715,7 +1715,6 @@ function createMessage(x: number, y: number) {
   message.y = y;
   message.text =
     "-- celeste mountain --#this memorial to those# perished on the climb";
-  message.sprite = 86;
   message.index = 0;
   message.last = 0;
   return message;
