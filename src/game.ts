@@ -37,7 +37,7 @@ if (import.meta.hot) {
   });
 }
 
-window.gameState = import.meta.hot?.data as GameState;
+window.gameState = import.meta.hot?.data ?? ({} as GameState);
 
 // Constants
 const SPRITE_W = 8;

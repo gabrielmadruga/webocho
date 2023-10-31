@@ -12,18 +12,29 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  -webkit-touch-callout: none;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
   -webkit-user-callout: none;
-  -webkit-user-select: none;
   -webkit-user-drag: none;
   -webkit-user-modify: none;
   -webkit-highlight: none;
+  -moz-user-select: none;
+  -webkit-user-drag: none;
   user-select: none;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
-html, body, #root {
-  height: 100%;
+body {
+  overflow: hidden;
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  width: 100vw;
+  margin: 0;
+  margin-top: env(safe-area-inset-top);
+  margin-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  flex: 1;
 }

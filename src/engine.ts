@@ -768,10 +768,14 @@ const userInteractionHappenedPromise = new Promise<void>(
     function interactionListener() {
       window.removeEventListener("click", interactionListener);
       window.removeEventListener("keydown", interactionListener);
+      window.removeEventListener("touchstart", interactionListener);
+      window.removeEventListener("touchend", interactionListener);
       resolve();
     }
     window.addEventListener("click", interactionListener);
     window.addEventListener("keydown", interactionListener);
+    window.addEventListener("touchstart", interactionListener);
+    window.addEventListener("touchend", interactionListener);
   }
 );
 
@@ -785,6 +789,28 @@ window.addEventListener("keydown", async function keydownListener(e) {
 window.addEventListener("keyup", async function keydownListener(e) {
   engineState.buttons[e.code] = false;
 });
+
+window.addEventListener("pointerdown", pointerStart);
+window.addEventListener("pointerup", pointerEnd);
+window.addEventListener("pointercancel", pointerEnd);
+window.addEventListener("pointermove", pointerMove);
+window.addEventListener("touchstart", (e) => e.preventDefault());
+window.addEventListener("touchend", (e) => e.preventDefault());
+window.addEventListener("dragstart", (e) => e.preventDefault());
+function pointerStart(e: PointerEvent) {
+  e.preventDefault();
+  console.log("pointerStart");
+}
+
+function pointerEnd(e: PointerEvent) {
+  e.preventDefault();
+  console.log("pointerEnd");
+}
+
+function pointerMove(e: PointerEvent) {
+  e.preventDefault();
+  console.log("pointerEnd");
+}
 
 function putPixel(
   x: number,
