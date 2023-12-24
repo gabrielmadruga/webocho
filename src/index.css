@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #ff0000;
+  background-color: black;
 
   overflow: hidden;
   overscroll-behavior: none;
@@ -37,4 +37,24 @@ body {
 
 #root {
   flex: 1;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+#canvas {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  margin: 0;
+  padding: 0;
+  /* cursor: url(./sprites/cursor.png), none; */
+  width: 100%;
+  max-width: calc(128px * 4);
 }

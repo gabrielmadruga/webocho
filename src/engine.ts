@@ -799,17 +799,14 @@ window.addEventListener("touchend", (e) => e.preventDefault());
 window.addEventListener("dragstart", (e) => e.preventDefault());
 function pointerStart(e: PointerEvent) {
   e.preventDefault();
-  console.log("pointerStart");
 }
 
 function pointerEnd(e: PointerEvent) {
   e.preventDefault();
-  console.log("pointerEnd");
 }
 
 function pointerMove(e: PointerEvent) {
   e.preventDefault();
-  console.log("pointerEnd");
 }
 
 function putPixel(
@@ -1000,7 +997,7 @@ async function loadMap(
     xhr.send();
   });
 
-  mapStr = mapStr.replace(/(\r\n|\n|\r)/gm, "");
+  mapStr = mapStr.replace(/(\r\n|\n|\r)/gm, ""); // Make it a single line
   // Load normal map data
   const mapWidth = 128;
   for (let i = 0; i < mapWidth * (32 * 2); i += 2) {
@@ -1023,6 +1020,7 @@ async function loadMap(
       16
     );
   }
+  console.log(_map);
 }
 
 // Flags are represented in the .p8 file as 2 lines of 256 hexadecimal digits (128 bytes).

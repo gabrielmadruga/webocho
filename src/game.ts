@@ -842,7 +842,7 @@ function updateGameObjects() {
             if (fallFloorBelow) {
               fallFloorBreak(fallFloorBelow);
             }
-            psfx(8);
+            psfx(8); // TODO: what is this? fallFloorBreak calls psfx(15)
           }
         } else if (g.delay > 0) {
           g.delay -= 1;
@@ -1569,6 +1569,7 @@ function createPlayerSpawner(x: number, y: number) {
   playerSpawner.targetY = y;
   playerSpawner.state = "GoingUp";
   createHairs(playerSpawner);
+  sfx(4);
   return playerSpawner;
 }
 
