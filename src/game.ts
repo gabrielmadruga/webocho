@@ -26,6 +26,7 @@ import {
   cls,
   Color,
   round,
+  SfxName,
 } from "./engine.js";
 
 // This enables hot reloading in vite
@@ -69,7 +70,7 @@ export type GameState = {
   shouldFlashBackground: boolean;
   useOrbBackground: boolean;
   deathCount: number;
-  showFruitInLevel: boolean[]; // TODO: rename to picked?
+  pickedFruitInLevel: boolean[];
   timers: Record<"freeze" | "shake" | "playMusic" | "mutePsfxs", number>;
   timeElapsed: TimeElapsed;
 
@@ -84,7 +85,7 @@ export function init() {
   gameState.shouldFlashBackground = false;
   gameState.useOrbBackground = false;
   gameState.deathCount = 0;
-  gameState.showFruitInLevel = Array(30).fill(false);
+  gameState.pickedFruitInLevel = Array(30).fill(false);
 
   gameState.timers = {
     freeze: 0,
@@ -107,6 +108,7 @@ export function init() {
   gameState.gameObjectPool = new Set(gameState.gameObjects);
   gameState.gameObjectsByType = new Map();
 
+  music("song40", 0, 7);
   const titleScreen = createGameObject("TitleScreen");
   // Title screen is on the last part of the map. There are 32 screens worth of map, indexed from 0, so it's the number 31
   // This is the conversion from 1d to 2d indexing (unflattening/mapping) of sceneId to map coords (in scenes) and then converting to tile coords by scaling using sceneInTiles
@@ -127,7 +129,7 @@ export function update() {
       if (timers[key] === 0) {
         switch (key) {
           case "playMusic":
-            music(10, 0, 7);
+            music("song10", 0, 7);
             break;
         }
       }
@@ -343,6 +345,7 @@ function destroyGameObject(gameObject: GameObject) {
         cloud.parent = levels;
         cloud.parent.children.push(cloud);
       }
+      music("song0");
       const firstLevel = createLevel(0);
       firstLevel.parent = levels;
       firstLevel.parent.children.push(firstLevel);
@@ -412,8 +415,8 @@ function updateGameObjects() {
     switch (g.type) {
       case "TitleScreen": {
         if (g.maxAgeInFrames === 0 && (btn(K_JUMP) || btn(K_DASH))) {
-          music(-1);
-          sfx(38);
+          music("stop");
+          sfx("gameStarted");
           g.maxAgeInFrames = g.ageInFrames + 70;
         }
         break;
@@ -451,7 +454,7 @@ function updateGameObjects() {
               g.t = 5;
               gameState.timers["shake"] = 5;
               createSmoke(g.x, g.y + 4);
-              sfx(5);
+              sfx("playerSpawnerTouchedGround");
             }
           }
         } else if (g.state === "Landing") {
@@ -510,7 +513,7 @@ function updateGameObjects() {
         if (isOnGround) {
           g.grace = 6;
           if (g.currentDashJumpsCount < g.maxDashJumpsCount) {
-            psfx(54);
+            psfx("dashReset");
             g.currentDashJumpsCount = g.maxDashJumpsCount;
           }
         } else if (g.grace > 0) {
@@ -586,7 +589,7 @@ function updateGameObjects() {
           if (g.jumpBuffer > 0) {
             if (g.grace > 0) {
               // -- normal jump
-              psfx(1);
+              psfx("jumped");
               g.jumpBuffer = 0;
               g.grace = 0;
               g.speedY = -2;
@@ -598,7 +601,7 @@ function updateGameObjects() {
                 (gameObjectCollidesWithSolid(g, 3, 0) && 1) ||
                 0;
               if (wall_dir != 0) {
-                psfx(2);
+                psfx("wallJumped");
                 g.jumpBuffer = 0;
                 g.speedY = -2;
                 g.speedX = -wall_dir * (maxrun + 1);
@@ -636,7 +639,7 @@ function updateGameObjects() {
               g.speedY = 0;
             }
 
-            psfx(3);
+            psfx("dashed");
             gameState.timers["freeze"] = 2;
             gameState.timers["shake"] = 6;
             g.dashTargetX = 2 * sign(g.speedX);
@@ -655,7 +658,7 @@ function updateGameObjects() {
               g.dashAccelerationY *= 0.70710678118;
             }
           } else if (shouldDash && g.currentDashJumpsCount <= 0) {
-            psfx(9);
+            psfx("didNotDash");
             createSmoke(g.x, g.y);
           }
         }
@@ -682,8 +685,21 @@ function updateGameObjects() {
         if (g.y < -4 && level.id < LAST_LEVEL_ID) {
           destroyGameObject(g);
           const level = getGameObjectOfType("Level")!;
-          createLevel((level.id + 1) % 32);
           destroyGameObject(level);
+          const nextLevel = (level.id + 1) % 32;
+          if (nextLevel === 11) {
+            music("song30", 500);
+          }
+          if (nextLevel === 12) {
+            music("song20", 500);
+          }
+          if (nextLevel === 21) {
+            music("song30", 500);
+          }
+          if (nextLevel === 30) {
+            music("song30", 500);
+          }
+          createLevel(nextLevel);
           return;
         }
 
@@ -755,7 +771,7 @@ function updateGameObjects() {
           case "invisible/resetting":
             g.delay -= 1;
             if (g.delay <= 0 && !gameObjectFirstCollision(g, 0, 0, [player])) {
-              psfx(7);
+              psfx("fallFloorReset");
               g.state = "idle";
               g.isCollidable = true;
               createSmoke(g.x, g.y);
@@ -793,7 +809,7 @@ function updateGameObjects() {
           player.speedY = -1.5;
           player.dashTime = -1;
           gameState.timers["mutePsfxs"] = 20;
-          sfx(16);
+          sfx("fakeWallDestroyed");
           destroyGameObject(g);
           createSmoke(g.x, g.y);
           createSmoke(g.x + 8, g.y);
@@ -842,7 +858,7 @@ function updateGameObjects() {
             if (fallFloorBelow) {
               fallFloorBreak(fallFloorBelow);
             }
-            psfx(8); // TODO: what is this? fallFloorBreak calls psfx(15)
+            psfx("springUsed");
           }
         } else if (g.delay > 0) {
           g.delay -= 1;
@@ -866,7 +882,7 @@ function updateGameObjects() {
           getGameObjectOfType("Player"),
         ]);
         if (!g.shouldShowStats && player) {
-          sfx(55);
+          sfx("winFlagTouched");
           gameState.timers["mutePsfxs"] = 30;
           g.shouldShowStats = true;
         }
@@ -884,7 +900,7 @@ function updateGameObjects() {
             player &&
             player.currentDashJumpsCount < player.maxDashJumpsCount
           ) {
-            psfx(6);
+            psfx("balloonGrabbed");
             createSmoke(g.x, g.y);
             player.currentDashJumpsCount = player.maxDashJumpsCount;
             g.sprite = 0;
@@ -893,7 +909,7 @@ function updateGameObjects() {
         } else if (g.timer > 0) {
           g.timer -= 1;
         } else {
-          psfx(7);
+          psfx("balloonReset");
           createSmoke(g.x, g.y);
           g.sprite = 22;
         }
@@ -910,7 +926,7 @@ function updateGameObjects() {
           getGameObjectOfType("Player"),
         ]);
         if (player) {
-          sfx(23);
+          sfx("keyGrabbed");
           gameState.timers["mutePsfxs"] = 10;
           player.hasKeyInScene = true;
           destroyGameObject(g);
@@ -925,8 +941,8 @@ function updateGameObjects() {
         if (player) {
           player.currentDashJumpsCount = player.maxDashJumpsCount;
           gameState.timers["mutePsfxs"] = 20;
-          sfx(13);
-          gameState.showFruitInLevel[level.id] = true;
+          sfx("fruitPickedUp");
+          gameState.pickedFruitInLevel[level.id] = true;
           createLifeUp(g.x, g.y);
           destroyGameObject(g);
         }
@@ -941,7 +957,7 @@ function updateGameObjects() {
             g.sfxDelay -= 1;
             if (g.sfxDelay <= 0) {
               gameState.timers["mutePsfxs"] = 20;
-              sfx(14);
+              sfx("fruitStartedFly");
             }
           }
           g.speedY = adjustValueWithinRange(g.speedY, -3.5, 0.25);
@@ -962,8 +978,8 @@ function updateGameObjects() {
         if (collidesWithPlayer) {
           player.currentDashJumpsCount = player.maxDashJumpsCount;
           gameState.timers["mutePsfxs"] = 20;
-          sfx(13);
-          gameState.showFruitInLevel[level.id] = true;
+          sfx("fruitPickedUp");
+          gameState.pickedFruitInLevel[level.id] = true;
           createLifeUp(g.x, g.y);
           destroyGameObject(g);
         }
@@ -976,7 +992,7 @@ function updateGameObjects() {
           g.x = g.start - 1 + rnd(3);
           if (g.timer <= 0) {
             gameState.timers["mutePsfxs"] = 20;
-            sfx(16);
+            sfx("chestOpened");
             const level = getGameObjectOfType("Level");
             const fruit = createFruit(g.x, g.y - 4);
             fruit.parent = level;
@@ -1013,7 +1029,7 @@ function updateGameObjects() {
         ]);
         if (player && g.speedY == 0) {
           gameState.timers["playMusic"] = 45;
-          sfx(51);
+          sfx("orbGrabbed");
           gameState.timers["freeze"] = 10;
           gameState.timers["shake"] = 10;
           destroyGameObject(g);
@@ -1030,7 +1046,7 @@ function updateGameObjects() {
             g.index += 0.5;
             if (g.index >= g.last + 1) {
               g.last += 1;
-              sfx(35);
+              sfx("letterTyped");
             }
           }
         } else {
@@ -1046,8 +1062,8 @@ function updateGameObjects() {
             player,
           ]);
           if (collidesWithPlayer && gameObjectCollidesWithSolid(player, 0, 1)) {
-            music(-1, 500, 7);
-            sfx(37);
+            music("stop", 500);
+            sfx("bigChestOpened");
             player.paused = true;
             player.speedX = 0;
             player.speedY = 0;
@@ -1451,25 +1467,6 @@ function createLevel(id: number) {
     terrain.parent.children.push(terrain);
   }
 
-  if (id === TITLE_LEVEL_ID) {
-    music(40, 0, 7);
-  }
-  if (id === 0) {
-    music(0, 0, 7);
-  }
-  if (id === 11) {
-    music(30, 500, 7);
-  }
-  if (id === 12) {
-    music(20, 500, 7);
-  }
-  if (id === 21) {
-    music(30, 500, 7);
-  }
-  if (id === 30) {
-    music(30, 500, 7);
-  }
-
   const tileIdToCreateMethod = {
     1: createPlayerSpawner,
     8: createKey,
@@ -1492,7 +1489,7 @@ function createLevel(id: number) {
       const tile = mget(level.tileX + x, level.tileY + y);
       // do not add fruit or chest or key if already picked up or lost the chance
       if (
-        gameState.showFruitInLevel[id] &&
+        gameState.pickedFruitInLevel[id] &&
         fruitRelatedTileIds.includes(tile)
       ) {
         continue;
@@ -1552,7 +1549,7 @@ function createPlayer(x: number, y: number) {
 
 function destroyPlayer(player: GameObject) {
   gameState.timers["mutePsfxs"] = 12;
-  sfx(0);
+  sfx("died");
   gameState.deathCount += 1;
   gameState.timers["shake"] = 10;
   destroyGameObject(player);
@@ -1569,7 +1566,7 @@ function createPlayerSpawner(x: number, y: number) {
   playerSpawner.targetY = y;
   playerSpawner.state = "GoingUp";
   createHairs(playerSpawner);
-  sfx(4);
+  sfx("playerSpawnerCreated");
   return playerSpawner;
 }
 
@@ -1623,7 +1620,7 @@ function createFallFloor(x: number, y: number) {
 
 function fallFloorBreak(fallFloor: GameObject) {
   if (fallFloor.state !== "idle") return;
-  psfx(15);
+  psfx("fallFloorShakeStarted");
   fallFloor.state = "shaking";
   fallFloor.delay = 15; // how long until it falls
   createSmoke(fallFloor.x, fallFloor.y);
@@ -1749,8 +1746,8 @@ function createFlag(x: number, y: number) {
   flag.score = 0;
   flag.shouldShowStats = false;
 
-  for (let i = 1; i < gameState.showFruitInLevel.length; i++) {
-    if (gameState.showFruitInLevel[i]) {
+  for (let i = 1; i < gameState.pickedFruitInLevel.length; i++) {
+    if (gameState.pickedFruitInLevel[i]) {
       flag.score += 1;
     }
   }
@@ -1825,9 +1822,9 @@ function createClouds() {
   return getGameObjectsOfType("Cloud");
 }
 
-function psfx(num: number) {
+function psfx(name: SfxName) {
   if (gameState.timers["mutePsfxs"] <= 0) {
-    sfx(num);
+    sfx(name);
   }
 }
 

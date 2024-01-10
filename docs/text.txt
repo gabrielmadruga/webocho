@@ -1,0 +1,22 @@
+
+
+Map/game tools improvements:
+  https://aran.ink/posts/celeste-tilesets
+  I think its a good idea to separate what's important for gameplay from what's merely aesthetic.
+  The pico-8 version has this things coupled because the tools are limited. This is not entirely bad, of course, as it makes things simple.
+
+
+Bring things from https://github.com/ExOK/Celeste2
+
+Code stuff:
+  Do I need update and draw to be separate? I get the idea of skipping frames, but maybe the code is simpler if it was just one method.
+  https://maddymakesgames.com/articles/celeste_and_towerfall_physics/index.html
+
+Having a better renderer: Three.js/Pixi.js/Shaders
+	https://www.youtube.com/watch?v=gGvYq6baFiQ
+  https://frontendmasters.com/courses/canvas-webgl/
+  https://simondev.teachable.com/p/glsl-shaders-from-scratch?coupon_code=EARLYBIRD2022
+
+Translating to C:
+  The reason is that it would be more portable, to not deviate too much I could look into WASM for game.ts. Last time I checked interop was a pain in the ass.
+  Got inspired by the GBA version - https://github.com/JeffRuLz/Celeste-Classic-GBA/tree/master

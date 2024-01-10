@@ -1,0 +1,15 @@
+
+As of today assets used in the games should be exported using *Pico-8* and put in a folder inside the assets folder with the name of the game:
+
+- a `png` for sprites and another one for the bitmap font (`sprites.png`, `font.png`)
+- `wav` files for sound effects and music (`sfxN.wav`, `musicN.wav`)
+- map data in a text file (`map.txt`)
+
+To export the assets with *Pico-8* load the game and load it in *Pico-8*:
+
+- Go to the game you want to download in *BBS* and download the cart.
+- Put the downloaded cart in the carts folder. Type `folder` in Pico-8 to open the carts folder. And load the game with `load` gameName.
+- Sprites: `export sprites.png` note that half of the sheet may have pixels of kind of random colors, if that is the case then that half is map information. We won’t use that as it’s easier to get that from the .p8 file as explained later on.
+- Audio is little more complex. SFXs and music can loop and that info is not encoded in the exported files as they are just wav files. `export sfx%d.wav` to export the sfxs. To export the music go to the music tab and press `esc`  and type `export musicX.wav`. Music that loops will have a limit of 12mb.
+All the files should be in the carts folder.
+Type `save gameName` to generate a `p8` file which can be opened to copy the map data and source code. If the game uses the second half of the spritesheet as map data, copy half of the gfx section to the `map.txt` file.

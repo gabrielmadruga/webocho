@@ -234,6 +234,8 @@ const lineStride = pixelStride * 128;
 const spriteSizePx = 8;
 
 let audioCtx: AudioContext | null;
+let musicBufferSourceNode: AudioBufferSourceNode | null;
+let musicGainNode: GainNode | null;
 const targetFPS = 30;
 const msPerFrame = 1000 / targetFPS;
 let loadingState:
@@ -241,14 +243,14 @@ let loadingState:
   | "Waiting for user input"
   | "Decoding audio files" = "Downloading assets";
 
+type SfxName = (typeof sfxNames)[number];
 type Assets = {
   fontPixels: Uint8ClampedArray;
   spritesPixels: Uint8ClampedArray;
-  sfxs: AudioBuffer[];
+  sfxs: Map<SfxName, AudioBuffer>;
   undecodedSfxs: ArrayBuffer[];
 };
 let assets: Assets | undefined;
-const sfxCount = 63;
 
 async function start() {
   canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -272,7 +274,7 @@ async function start() {
   );
   pixelBuffer = bufferImageData.data;
 
-  loadAssets("celeste", function onLoadAssetsProgress(progressEvent) {
+  loadAssets(function onLoadAssetsProgress(progressEvent) {
     const type = progressEvent.type;
     if (type === "user-input" && progressEvent.loaded == 0) {
       loadingState = "Waiting for user input";
@@ -321,7 +323,6 @@ function loop() {
 }
 
 async function loadAssets(
-  name: string,
   progressCallback?: (event: {
     type: string;
     total: number;
@@ -349,19 +350,19 @@ async function loadAssets(
   const userInputPC = createProgressCallbackForType("user-input");
   const audioDecPC = createProgressCallbackForType("audio-decoding");
 
-  const loadAudioPromise = loadAudio("celeste", sfxCount, audioPC);
+  const loadAudioPromise = loadAudio(audioPC);
   const data = await Promise.all([
-    loadImageData(`assets/${name}/font.png`, fontPC),
-    loadImageData(`assets/${name}/sprites.png`, spritesPC),
+    loadImageData(`assets/font.png`, fontPC),
+    loadImageData(`assets/sprites.png`, spritesPC),
     loadAudioPromise,
-    loadMap(name, mapPC),
-    loadSpriteFlags(name, flagPC),
+    loadMap(mapPC),
+    loadSpriteFlags(flagPC),
   ]);
   const assets: Assets = {
     fontPixels: data[0].data,
     spritesPixels: data[1].data,
     undecodedSfxs: data[2],
-    sfxs: [],
+    sfxs: new Map(),
   };
   const userInputWaitStart = performance.now();
   userInputPC({
@@ -381,9 +382,13 @@ async function loadAssets(
     total: 1,
     startTimeMs: audioDecodingStartTime,
   });
-  assets.sfxs = await Promise.all(
+  const sfxs = await Promise.all(
     assets.undecodedSfxs.flatMap((s) => audioCtx?.decodeAudioData(s) ?? [])
   );
+  for (let i = 0; i < sfxNames.length; i++) {
+    const name = sfxNames[i];
+    assets.sfxs.set(name, sfxs[i]);
+  }
   audioDecPC({
     loaded: 1,
     total: 1,
@@ -393,20 +398,72 @@ async function loadAssets(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function sfx(n: number, channel?: number, offset?: number, length?: number) {
+function sfx(
+  name: SfxName,
+  channel?: number,
+  offset?: number,
+  length?: number
+) {
   if (!audioCtx || !assets) return;
   const sampleSource = audioCtx.createBufferSource();
-  sampleSource.buffer = assets.sfxs[n];
+  sampleSource.buffer = assets.sfxs.get(name)!;
   sampleSource.connect(audioCtx.destination);
+  sampleSource.onended = () => {
+    sampleSource.disconnect(audioCtx!.destination);
+  };
   sampleSource.start();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function music(n: number, fadeLength?: number, channelMask?: number) {
-  // const sampleSource = audioCtx.createBufferSource();
-  // sampleSource.buffer = assets.musics[n];
-  // sampleSource.connect(audioCtx.destination);
-  // sampleSource.start();
+function music(
+  name: SfxName | "stop",
+  fadeLength?: number,
+  channelMask?: number
+) {
+  if (!audioCtx || !assets) return;
+
+  // This supports crossfade, to not have crossfade a call with stop and fadeLength = 0 or undefined is required before the next music
+  if (musicBufferSourceNode) {
+    if (fadeLength) {
+      musicGainNode!.gain.linearRampToValueAtTime(
+        0.0,
+        audioCtx.currentTime + fadeLength / 1000
+      );
+      const capturedSourceNode = musicBufferSourceNode;
+      const capturedGainNode = musicGainNode;
+      musicBufferSourceNode = null;
+      setTimeout(() => {
+        capturedSourceNode!.stop();
+        capturedSourceNode!.disconnect(capturedGainNode!);
+        capturedGainNode!.disconnect(audioCtx!.destination);
+      }, fadeLength);
+    } else {
+      musicBufferSourceNode!.stop();
+      musicBufferSourceNode!.disconnect(musicGainNode!);
+      musicGainNode!.disconnect(audioCtx.destination);
+      musicBufferSourceNode = null;
+    }
+  }
+
+  if (name === "stop") {
+    return;
+  }
+
+  musicBufferSourceNode = audioCtx.createBufferSource();
+  musicGainNode = audioCtx.createGain();
+  musicBufferSourceNode.loop = true;
+  musicBufferSourceNode.buffer = assets.sfxs.get(name)!;
+  musicBufferSourceNode.connect(musicGainNode);
+  musicGainNode.connect(audioCtx.destination);
+
+  if (fadeLength) {
+    musicGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    musicGainNode.gain.linearRampToValueAtTime(
+      1.0,
+      audioCtx.currentTime + fadeLength / 1000
+    );
+  }
+
+  musicBufferSourceNode!.start();
 }
 
 function cls(color = 0) {
@@ -976,11 +1033,8 @@ async function loadImageData(
 // The map area is 128 tiles wide by 64 tiles high. Map memory describes the top 32 rows.
 // If the cart author draws tiles in the bottom 32 rows, this is stored in the bottom of the __gfx__ section.
 // When porting a game from Pico-8, that data is copied to the map.txt file.
-async function loadMap(
-  name: string,
-  progressCallback?: (event: ProgressEvent) => void
-) {
-  const filename = `assets/${name}/map.txt`;
+async function loadMap(progressCallback?: (event: ProgressEvent) => void) {
+  const filename = `assets/map.txt`;
   let mapStr = await new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", filename);
@@ -1020,7 +1074,6 @@ async function loadMap(
       16
     );
   }
-  console.log(_map);
 }
 
 // Flags are represented in the .p8 file as 2 lines of 256 hexadecimal digits (128 bytes).
@@ -1029,10 +1082,9 @@ async function loadMap(
 // In the graphics editor, the flags are arranged left to right from LSB to MSB:
 // red=1, orange=2, yellow=4, green=8, blue=16, purple=32, pink=64, peach=128.
 async function loadSpriteFlags(
-  name: string,
   progressCallback?: (event: ProgressEvent) => void
 ) {
-  const filename = `assets/${name}/sprite_flags.txt`;
+  const filename = `assets/sprite_flags.txt`;
   let flagsStr = await new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", filename);
@@ -1054,15 +1106,44 @@ async function loadSpriteFlags(
   }
 }
 
+const sfxNames = [
+  "died",
+  "jumped",
+  "wallJumped",
+  "dashed",
+  "playerSpawnerCreated",
+  "playerSpawnerTouchedGround",
+  "balloonGrabbed",
+  "balloonReset",
+  "fallFloorReset",
+  "springUsed",
+  "didNotDash",
+  "fruitPickedUp",
+  "fruitStartedFly",
+  "fallFloorShakeStarted",
+  "fakeWallDestroyed",
+  "chestOpened",
+  "keyGrabbed",
+  "letterTyped",
+  "bigChestOpened",
+  "gameStarted",
+  "orbGrabbed",
+  "dashReset",
+  "winFlagTouched",
+  "song0",
+  "song10",
+  "song20",
+  "song30",
+  "song40",
+] as const;
 async function loadAudio(
-  name: string,
-  sfxCount: number,
   progressCallback?: (event: { total: number; loaded: number }) => void
 ) {
   const promises = [];
   const progressEvents = new Map<string, { total: number; loaded: number }>();
-  for (let i = 0; i < sfxCount; i++) {
-    const filename = `assets/${name}/sfx${i}.wav`;
+  for (let i = 0; i < sfxNames.length; i++) {
+    const name = sfxNames[i];
+    const filename = `assets/sfx/${name}.wav`;
     const promise = new Promise<ArrayBuffer>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("GET", filename);
@@ -1078,7 +1159,7 @@ async function loadAudio(
       xhr.onprogress = progressCallback
         ? function onRequestProgress(event) {
             progressEvents.set(filename, event);
-            if (progressEvents.size === sfxCount) {
+            if (progressEvents.size === sfxNames.length) {
               const accumulatedEvent = { total: 0, loaded: 0 };
               for (const event of progressEvents.values()) {
                 accumulatedEvent.total += event.total;
@@ -1163,6 +1244,6 @@ export {
   time,
   t,
 };
-export type { Vec };
+export type { Vec, SfxName };
 
 // TODO: use OffscreenCanvas
