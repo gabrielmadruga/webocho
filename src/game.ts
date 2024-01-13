@@ -108,7 +108,7 @@ export function init() {
   gameState.gameObjectPool = new Set(gameState.gameObjects);
   gameState.gameObjectsByType = new Map();
 
-  music("song40", 0, 7);
+  music("song40", 0);
   const titleScreen = createGameObject("TitleScreen");
   // Title screen is on the last part of the map. There are 32 screens worth of map, indexed from 0, so it's the number 31
   // This is the conversion from 1d to 2d indexing (unflattening/mapping) of sceneId to map coords (in scenes) and then converting to tile coords by scaling using sceneInTiles
@@ -129,7 +129,7 @@ export function update() {
       if (timers[key] === 0) {
         switch (key) {
           case "playMusic":
-            music("song10", 0, 7);
+            music("song10", 0);
             break;
         }
       }

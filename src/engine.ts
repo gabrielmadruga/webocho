@@ -399,32 +399,36 @@ async function loadAssets(
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function sfx(
-  name: SfxName,
-  channel?: number,
-  offset?: number,
-  length?: number
+  name: SfxName
+  // channel?: number,
+  // offset?: number,
+  // length?: number
 ) {
   if (!audioCtx || !assets) return;
   const sampleSource = audioCtx.createBufferSource();
-  sampleSource.buffer = assets.sfxs.get(name)!;
+  const buffer = assets.sfxs.get(name);
+  if (buffer) {
+    sampleSource.buffer = buffer;
+  }
   sampleSource.connect(audioCtx.destination);
   sampleSource.onended = () => {
-    sampleSource.disconnect(audioCtx!.destination);
+    if (!audioCtx) return;
+    sampleSource.disconnect(audioCtx.destination);
   };
   sampleSource.start();
 }
 
 function music(
   name: SfxName | "stop",
-  fadeLength?: number,
-  channelMask?: number
+  fadeLength?: number
+  // channelMask?: number
 ) {
   if (!audioCtx || !assets) return;
 
   // This supports crossfade, to not have crossfade a call with stop and fadeLength = 0 or undefined is required before the next music
-  if (musicBufferSourceNode) {
+  if (musicBufferSourceNode && musicGainNode) {
     if (fadeLength) {
-      musicGainNode!.gain.linearRampToValueAtTime(
+      musicGainNode.gain.linearRampToValueAtTime(
         0.0,
         audioCtx.currentTime + fadeLength / 1000
       );
@@ -432,14 +436,15 @@ function music(
       const capturedGainNode = musicGainNode;
       musicBufferSourceNode = null;
       setTimeout(() => {
-        capturedSourceNode!.stop();
-        capturedSourceNode!.disconnect(capturedGainNode!);
-        capturedGainNode!.disconnect(audioCtx!.destination);
+        capturedSourceNode.stop();
+        capturedSourceNode.disconnect(capturedGainNode);
+        if (!audioCtx) return;
+        capturedGainNode.disconnect(audioCtx.destination);
       }, fadeLength);
     } else {
-      musicBufferSourceNode!.stop();
-      musicBufferSourceNode!.disconnect(musicGainNode!);
-      musicGainNode!.disconnect(audioCtx.destination);
+      musicBufferSourceNode.stop();
+      musicBufferSourceNode.disconnect(musicGainNode);
+      musicGainNode.disconnect(audioCtx.destination);
       musicBufferSourceNode = null;
     }
   }
@@ -448,10 +453,12 @@ function music(
     return;
   }
 
+  const buffer = assets.sfxs.get(name);
+  if (!buffer) return;
   musicBufferSourceNode = audioCtx.createBufferSource();
   musicGainNode = audioCtx.createGain();
   musicBufferSourceNode.loop = true;
-  musicBufferSourceNode.buffer = assets.sfxs.get(name)!;
+  musicBufferSourceNode.buffer = buffer;
   musicBufferSourceNode.connect(musicGainNode);
   musicGainNode.connect(audioCtx.destination);
 
@@ -463,7 +470,7 @@ function music(
     );
   }
 
-  musicBufferSourceNode!.start();
+  musicBufferSourceNode.start();
 }
 
 function cls(color = 0) {
