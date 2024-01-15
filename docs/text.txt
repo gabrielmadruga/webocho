@@ -1,9 +1,27 @@
 
+320x180 pixels in-game camera
+8x8 pixel tiles
 
-Map/game tools improvements:
-  https://aran.ink/posts/celeste-tilesets
+
+Making an editor:
+  
+  What's the input and what's the output or what is manual and what is generated?
+  Input for a level:
+    - Terrain
+    - Props
+      - Spikes
+      - FakeWall
+    - PlayerSpawner
+    - Decorations
+  Generation:
+    - Use auto-tiling 
+  
   I think its a good idea to separate what's important for gameplay from what's merely aesthetic.
   The pico-8 version has this things coupled because the tools are limited. This is not entirely bad, of course, as it makes things simple.
+
+  resources:
+    https://aran.ink/posts/celeste-tilesets
+
 
 
 Bring things from https://github.com/ExOK/Celeste2

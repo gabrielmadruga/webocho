@@ -1061,7 +1061,8 @@ async function loadMap(progressCallback?: (event: ProgressEvent) => void) {
   mapStr = mapStr.replace(/(\r\n|\n|\r)/gm, ""); // Make it a single line
   // Load normal map data
   const mapWidth = 128;
-  for (let i = 0; i < mapWidth * (32 * 2); i += 2) {
+  const mapHeight = 32;
+  for (let i = 0; i < mapWidth * 2 * mapHeight; i += 2) {
     const x = (i / 2) % mapWidth;
     const y = flr(i / 2 / mapWidth);
     if (!_map[x]) _map[x] = [];
